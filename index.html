@@ -56,9 +56,9 @@
       <span class="row-title">Doors:</span>
       <div class="btn-group">
         <button class="door-btn active" data-door="Green">Green</button>
-        <button class="door-btn" data-door="blue">Blue</button>
-        <button class="door-btn" data-door="black">Black</button>
-        <button class="door-btn" data-door="cream">Cream</button>
+        <button class="door-btn" data-door="Blue">Blue</button>
+        <button class="door-btn" data-door="Black">Black</button>
+        <button class="door-btn" data-door="Cream">Cream</button>
       </div>
     </div>
 
@@ -80,24 +80,32 @@
     let selectedDoor = "Green";
     let selectedWorktop = "Oak";
 
-    // Change this to your exact live GitHub Pages folder URL path
-    const githubPagesUrl = "https://github.com/blacksheepcampersuk/All";
-
+    // NOTE: Use relative filenames (same folder as index.html) so we don't need to hardcode a GitHub Pages URL
     function updateConfigurator() {
-      // 1. Build the correct file name based on selected size
-      const targetFileUrl = `${githubPagesUrl}cupboard_${selectedSize}.glb`;
+      // 1. Build the correct file name based on selected size (relative path)
+      const targetFileUrl = `cupboard_${selectedSize}.glb`;
       
       // 2. Build the combination variant string (e.g. "Green_Oak")
       const targetVariantName = `${selectedDoor}_${selectedWorktop}`;
 
+      // Normalize current src form (we compare attribute to attribute so the comparison is consistent)
+      const currentSrcAttr = modelViewer.getAttribute("src");
+
       // 3. If the user changed the size, update the source file first
-      if (modelViewer.getAttribute("src") !== targetFileUrl) {
-        modelViewer.src = targetFileUrl;
-        
+      if (currentSrcAttr !== targetFileUrl) {
+        // Use setAttribute so getAttribute later returns the same relative string
+        modelViewer.setAttribute("src", targetFileUrl);
+
         // Wait for the new size model to finish downloading before setting its color variant
         modelViewer.addEventListener("load", () => {
-          modelViewer.variantName = targetVariantName;
-        }, { once: true }); // Running 'once: true' prevents duplicating event triggers
+          // Set variant after the model has loaded
+          if (typeof modelViewer.variantName !== "undefined") {
+            modelViewer.variantName = targetVariantName;
+          } else {
+            // If variantName isn't available on the element for some reason, log it to help debugging
+            console.warn("model-viewer variantName not available; ensure your GLB has variants named:", targetVariantName);
+          }
+        }, { once: true });
       } else {
         // If the size didn't change, just update the color variant instantly
         modelViewer.variantName = targetVariantName;
@@ -132,6 +140,11 @@
         selectedWorktop = e.target.getAttribute("data-worktop");
         updateConfigurator();
       });
+    });
+
+    // Optional: log model-viewer errors to console to make debugging easier
+    modelViewer.addEventListener("error", (ev) => {
+      console.error("model-viewer error event:", ev);
     });
   </script>
 
