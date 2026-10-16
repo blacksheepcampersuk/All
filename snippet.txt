@@ -1,0 +1,1 @@
+<model-viewer src="Twin Bench.glb" ar ar-modes="webxr scene-viewer quick-look" camera-controls tone-mapping="neutral" poster="poster.webp" shadow-intensity="1" shadow-softness="1" exposure="1" background colour="transparent"> </model-viewer>

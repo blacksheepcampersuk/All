@@ -1,0 +1,83 @@
+:not(:defined) > * {
+  display: none;
+}
+
+html {
+  height: 100%;
+}
+/* swatch size can be changed in one place */
+:root {
+  --swatch-size: 56px; /* try 48px, 56px, 64px depending on taste */
+  --swatch-border: 2px;
+  --swatch-ring: 3px;
+}
+
+.color-btn {
+  width: var(--swatch-size);
+  height: var(--swatch-size);
+  border-radius: 50%;             /* makes it a circle */
+  border: var(--swatch-border) solid rgba(0,0,0,0.12);
+  margin: 8px;
+  padding: 0;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  display: inline-block;
+  vertical-align: middle;
+
+  /* hide any visible text but keep it accessible to screen readers */
+  color: transparent;
+  text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.color-btn:hover:not([disabled]) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+.color-btn:focus {
+  outline: none; /* remove default - we'll use a custom ring for accessibility */
+}
+
+.color-btn:focus-visible {
+  box-shadow: 0 0 0 var(--swatch-ring) rgba(0,0,0,0.08), 0 6px 18px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+}
+
+/* "selected" shows a stronger visible ring */
+.color-btn.selected {
+  outline: none;
+  box-shadow: 0 0 0 var(--swatch-ring) #111 inset, 0 8px 24px rgba(0,0,0,0.14);
+  transform: translateY(-2px);
+}
+
+/* Disabled look */
+.color-btn[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(60%);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive: slightly smaller on small screens */
+@media (max-width: 480px) {
+  :root { --swatch-size: 44px; }
+}
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+model-viewer {
+  width: 100%;
+  height: 90%;
+  background-color: #ffffff;
+}
