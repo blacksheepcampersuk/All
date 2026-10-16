@@ -33,7 +33,7 @@
 </head>
 <body>
 
-  <!-- The 3D View Canvas (Starts with the small cupboard file) -->
+  <!-- The 3D View Canvas (Starts with the Twin Bench file) -->
   <model-viewer 
     id="cupboard-viewer" 
     src="Twin%20Bench.glb" 
@@ -41,13 +41,14 @@
   </model-viewer>
 
   <div class="configurator-panel">
-    <!-- ROW 1: Sizes (Changes the actual GLB file) -->
+    <!-- ROW 1: Models (Ewe / Twin-bench / Belted Ewe) -->
     <div class="row">
-      <span class="row-title">Size:</span>
+      <span class="row-title">Model:</span>
       <div class="btn-group">
-        <button class="size-btn active" data-size="small">Small</button>
-        <button class="size-btn" data-size="medium">Medium</button>
-        <button class="size-btn" data-size="large">Large</button>
+        <!-- data-size holds the exact filename we'll set on the model-viewer src -->
+        <button class="size-btn" data-size="Ewe.glb">Ewe</button>
+        <button class="size-btn active" data-size="Twin%20Bench.glb">Twin-bench</button>
+        <button class="size-btn" data-size="Belted%20Ewe.glb">Belted Ewe</button>
       </div>
     </div>
 
@@ -76,48 +77,45 @@
     const modelViewer = document.querySelector("#cupboard-viewer");
     
     // Track global configuration state
-    let selectedSize = "small";
+    // selectedModel holds the exact filename used as the model-viewer src
+    let selectedModel = "Twin%20Bench.glb";
     let selectedDoor = "Green";
     let selectedWorktop = "Oak";
 
-    // NOTE: Use relative filenames (same folder as index.html) so we don't need to hardcode a GitHub Pages URL
     function updateConfigurator() {
-      // 1. Build the correct file name based on selected size (relative path)
-      const targetFileUrl = `cupboard_${selectedSize}.glb`;
-      
+      // 1. targetFile is the filename (relative path) we want to load
+      const targetFileUrl = selectedModel;
       // 2. Build the combination variant string (e.g. "Green_Oak")
       const targetVariantName = `${selectedDoor}_${selectedWorktop}`;
 
-      // Normalize current src form (we compare attribute to attribute so the comparison is consistent)
+      // Normalize current src form (compare attribute to attribute so the comparison is consistent)
       const currentSrcAttr = modelViewer.getAttribute("src");
 
-      // 3. If the user changed the size, update the source file first
+      // 3. If the model changed, update the source file first
       if (currentSrcAttr !== targetFileUrl) {
         // Use setAttribute so getAttribute later returns the same relative string
         modelViewer.setAttribute("src", targetFileUrl);
 
-        // Wait for the new size model to finish downloading before setting its color variant
+        // Wait for the new model to finish downloading before setting its color variant
         modelViewer.addEventListener("load", () => {
-          // Set variant after the model has loaded
           if (typeof modelViewer.variantName !== "undefined") {
             modelViewer.variantName = targetVariantName;
           } else {
-            // If variantName isn't available on the element for some reason, log it to help debugging
             console.warn("model-viewer variantName not available; ensure your GLB has variants named:", targetVariantName);
           }
         }, { once: true });
       } else {
-        // If the size didn't change, just update the color variant instantly
+        // If the model didn't change, just update the color variant instantly
         modelViewer.variantName = targetVariantName;
       }
     }
 
-    // Handle Size Buttons
+    // Handle Model Buttons
     document.querySelectorAll(".size-btn").forEach(button => {
       button.addEventListener("click", (e) => {
         document.querySelectorAll(".size-btn").forEach(btn => btn.classList.remove("active"));
         e.target.classList.add("active");
-        selectedSize = e.target.getAttribute("data-size");
+        selectedModel = e.target.getAttribute("data-size");
         updateConfigurator();
       });
     });
