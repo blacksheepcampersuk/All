@@ -2,6 +2,7 @@
   "id": "ewe",
   "title": "The ewe shape - furniture only",
   "price": "£1,395.00",
+  "model": "Twin%20Bench.glb",
   "images": {
     "Green": "green.svg",
     "Black": "black.svg",

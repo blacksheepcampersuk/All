@@ -4,19 +4,31 @@ import ImageGallery from '../components/ImageGallery'
 import VariantButtons from '../components/VariantButtons'
 import Accordion from '../components/Accordion'
 import QuoteModal from '../components/QuoteModal'
+import ModelViewer from '../components/ModelViewer'
 
 export default function ProductPage(){
   const [selectedColor, setSelectedColor] = useState('Green')
   const [showModal, setShowModal] = useState(false)
+  const [viewMode, setViewMode] = useState('photo') // 'photo' or '3d'
 
   const images = productData.images || {}
   const mainImage = images[selectedColor]
+  const modelFile = productData.model || null
 
   return (
     <div className="max-w-6xl w-full grid grid-cols-12 gap-6">
       <div className="col-span-7">
         <div className="bg-white rounded border p-4">
-          <ImageGallery src={`/images/products/ewe/${mainImage}`} alt={`${productData.title} ${selectedColor}`} />
+          <div className="flex items-center gap-3 mb-4">
+            <button className={`px-3 py-1 rounded ${viewMode==='photo' ? 'bg-green-900 text-white' : 'bg-white border'}`} onClick={()=>setViewMode('photo')}>Photo</button>
+            <button className={`px-3 py-1 rounded ${viewMode==='3d' ? 'bg-green-900 text-white' : 'bg-white border'}`} onClick={()=>setViewMode('3d')}>3D view</button>
+          </div>
+
+          {viewMode === 'photo' ? (
+            <ImageGallery src={`/images/products/ewe/${mainImage}`} alt={`${productData.title} ${selectedColor}`} />
+          ) : (
+            <ModelViewer src={`/models/${modelFile}`} variantName={selectedColor} />
+          )}
         </div>
       </div>
 
