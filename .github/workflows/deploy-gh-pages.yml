@@ -1,3 +1,9 @@
+
+name: Deploy to GitHub Pages
+
+on: push: branches: - feature/product-page workflow_dispatch:
+
+jobs: build: runs-on: ubuntu-latest steps:
   - name: Use Node.js
     uses: actions/setup-node@v4
     with:
