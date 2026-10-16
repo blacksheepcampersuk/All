@@ -104,6 +104,17 @@
     // initial front orbit used only on first load
     const FRONT_CAMERA_ORBIT = "135deg 75deg auto";
 
+    // Per-model azimuth adjustment in degrees to correct model-specific orientation
+    // If a model's "front" is rotated relative to others, add the number of degrees
+    // needed to bring the camera to face its front. Example: Ewe.glb needs +180deg.
+    const MODEL_AZIMUTH_ADJUST = {
+      'Ewe.glb': 180,
+      // Add other models here if needed: 'Twin%20Bench.glb': 0
+    };
+
+    // rotation step (degrees per click)
+    const ROTATION_STEP = 45; // changed from 30 to 45 as requested
+
     let initialLoadDone = false;
     let savedOrbitToRestore = null;
     let savedTargetToRestore = null;
@@ -143,6 +154,25 @@
       }
     }
 
+    function adjustOrbitAzimuth(orbitString, addDegrees) {
+      try {
+        if (!orbitString) return orbitString;
+        const parts = orbitString.trim().split(/\s+/);
+        if (parts.length < 3) return orbitString;
+        const az = parts[0];
+        const elev = parts[1];
+        const radius = parts[2];
+        const azMatch = az.match(/(-?[0-9.]+)deg/);
+        if (!azMatch) return orbitString;
+        let azValue = parseFloat(azMatch[1]);
+        azValue = (azValue + addDegrees) % 360;
+        if (azValue < 0) azValue += 360;
+        return `${azValue}deg ${elev} ${radius}`;
+      } catch (err) {
+        return orbitString;
+      }
+    }
+
     function saveCurrentCamera() {
       try {
         savedOrbitToRestore = modelViewer.cameraOrbit || null;
@@ -158,6 +188,7 @@
 
     modelViewer.addEventListener("load", () => {
       if (!initialLoadDone) {
+        // initial load: snap to the chosen front orbit
         jumpToOrbit(FRONT_CAMERA_ORBIT, true);
         initialLoadDone = true;
       }
@@ -191,21 +222,33 @@
         modelViewer.setAttribute("src", targetFileUrl);
 
         modelViewer.addEventListener("load", () => {
+          // Restore camera target first (helps keep panning consistent)
           if (savedTargetToRestore) {
             try {
               modelViewer.cameraTarget = savedTargetToRestore;
             } catch (err) { /* ignore */ }
           }
 
-          if (savedOrbitToRestore) {
+          // Determine orbit to restore or initial orbit
+          let orbitToApply = savedOrbitToRestore || FRONT_CAMERA_ORBIT;
+
+          // Apply any per-model azimuth adjustment so the model's "front" faces camera
+          const modelFile = selectedModel;
+          const adjust = MODEL_AZIMUTH_ADJUST[modelFile] || 0;
+          if (adjust !== 0) {
+            orbitToApply = adjustOrbitAzimuth(orbitToApply, adjust);
+          }
+
+          if (orbitToApply) {
             try {
               requestAnimationFrame(() => {
-                modelViewer.cameraOrbit = savedOrbitToRestore;
+                modelViewer.cameraOrbit = orbitToApply;
               });
             } catch (err) { /* ignore */ }
             savedOrbitToRestore = null;
             savedTargetToRestore = null;
           }
+
           applyVariant(targetVariantName);
           showViewer();
         }, { once: true });
@@ -235,7 +278,7 @@
       });
     });
 
-    // New: rotate-left / rotate-right handler
+    // New: rotate-left / rotate-right handler (uses ROTATION_STEP)
     function rotateBy(deg) {
       try {
         const orbit = modelViewer.cameraOrbit || '';
@@ -246,7 +289,6 @@
           jumpToOrbit(FRONT_CAMERA_ORBIT, false);
           return;
         }
-        // parse azimuth value (assume 'deg' unit)
         const az = parts[0];
         const elev = parts[1];
         const radius = parts[2];
@@ -256,10 +298,8 @@
           return;
         }
         let azValue = parseFloat(azMatch[1]);
-        // add rotation and normalize to [0,360)
         azValue = (azValue + deg) % 360;
         if (azValue < 0) azValue += 360;
-        // set new orbit (animated)
         modelViewer.cameraOrbit = `${azValue}deg ${elev} ${radius}`;
       } catch (err) {
         console.warn('rotateBy error', err);
@@ -270,8 +310,8 @@
       const btn = ev.target.closest('button[data-rotate]');
       if (!btn) return;
       const dir = btn.getAttribute('data-rotate');
-      if (dir === 'left') rotateBy(30); // rotate left by +30deg
-      if (dir === 'right') rotateBy(-30); // rotate right by -30deg
+      if (dir === 'left') rotateBy(ROTATION_STEP); // rotate left
+      if (dir === 'right') rotateBy(-ROTATION_STEP); // rotate right
     });
 
     // Keep savedOrbitToRestore up-to-date as the user interacts
