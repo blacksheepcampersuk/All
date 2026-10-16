@@ -61,17 +61,11 @@
       style="width:100%; height:55vh; visibility:hidden; opacity:0; transition:opacity .25s; border-radius:12px;">
     </model-viewer>
 
+    <!-- Replace preset controls with rotate-left / rotate-right -->
     <div class="view-controls" id="view-controls">
       <div class="row">
-        <button data-view="front">Front</button>
-        <button data-view="back">Back</button>
-      </div>
-      <div class="row">
-        <button data-view="left">Left</button>
-        <button data-view="right">Right</button>
-      </div>
-      <div class="row">
-        <button data-view="top">Top</button>
+        <button data-rotate="left">Rotate Left</button>
+        <button data-rotate="right">Rotate Right</button>
       </div>
     </div>
 
@@ -220,6 +214,7 @@
       }
     }
 
+    // Save camera and switch model (ensures exact view is kept)
     document.querySelectorAll(".size-btn").forEach(button => {
       button.addEventListener("click", (e) => {
         document.querySelectorAll(".size-btn").forEach(btn => btn.classList.remove("active"));
@@ -240,24 +235,46 @@
       });
     });
 
-    const PRESETS = {
-      front: "0deg 75deg auto",
-      back: "180deg 75deg auto",
-      left: "90deg 75deg auto",
-      right: "270deg 75deg auto",
-      top: "0deg 90deg auto"
-    };
-
-    viewControls.addEventListener("click", (ev) => {
-      const btn = ev.target.closest("button[data-view]");
-      if (!btn) return;
-      const view = btn.getAttribute("data-view");
-      const orbit = PRESETS[view];
-      if (orbit) {
-        jumpToOrbit(orbit, false);
+    // New: rotate-left / rotate-right handler
+    function rotateBy(deg) {
+      try {
+        const orbit = modelViewer.cameraOrbit || '';
+        // orbit format: "<azimuth> <elevation> <radius>" e.g. "135deg 75deg auto"
+        const parts = orbit.trim().split(/\s+/);
+        if (parts.length < 3) {
+          // fallback: animate to front then apply small rotation
+          jumpToOrbit(FRONT_CAMERA_ORBIT, false);
+          return;
+        }
+        // parse azimuth value (assume 'deg' unit)
+        const az = parts[0];
+        const elev = parts[1];
+        const radius = parts[2];
+        const azMatch = az.match(/(-?[0-9.]+)deg/);
+        if (!azMatch) {
+          jumpToOrbit(FRONT_CAMERA_ORBIT, false);
+          return;
+        }
+        let azValue = parseFloat(azMatch[1]);
+        // add rotation and normalize to [0,360)
+        azValue = (azValue + deg) % 360;
+        if (azValue < 0) azValue += 360;
+        // set new orbit (animated)
+        modelViewer.cameraOrbit = `${azValue}deg ${elev} ${radius}`;
+      } catch (err) {
+        console.warn('rotateBy error', err);
       }
+    }
+
+    viewControls.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-rotate]');
+      if (!btn) return;
+      const dir = btn.getAttribute('data-rotate');
+      if (dir === 'left') rotateBy(30); // rotate left by +30deg
+      if (dir === 'right') rotateBy(-30); // rotate right by -30deg
     });
 
+    // Keep savedOrbitToRestore up-to-date as the user interacts
     modelViewer.addEventListener("camera-change", () => {
       try {
         savedOrbitToRestore = modelViewer.cameraOrbit;
