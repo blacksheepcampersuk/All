@@ -112,6 +112,7 @@
 
     let initialLoadDone = false;
     let savedOrbitToRestore = null;
+    let savedTargetToRestore = null;
 
     function showViewer() {
       spinner.style.display = "none";
@@ -137,21 +138,32 @@
       }
     }
 
-    // jumpToOrbit: if instant=true use instant jump, otherwise set cameraOrbit to animate
-    function jumpToOrbit(orbitString, instant = true) {
+    function jumpToOrbit(orbitString, instant = false) {
       try {
         modelViewer.cameraOrbit = orbitString;
         if (instant && typeof modelViewer.jumpCameraToGoal === 'function') {
           modelViewer.jumpCameraToGoal();
         }
       } catch (err) {
-        console.warn("Error jumping camera to orbit:", err);
+        console.warn("Error setting camera orbit:", err);
+      }
+    }
+
+    function saveCurrentCamera() {
+      try {
+        savedOrbitToRestore = modelViewer.cameraOrbit || null;
+      } catch (err) {
+        savedOrbitToRestore = null;
+      }
+      try {
+        savedTargetToRestore = modelViewer.cameraTarget || null;
+      } catch (err) {
+        savedTargetToRestore = null;
       }
     }
 
     modelViewer.addEventListener("load", () => {
       if (!initialLoadDone) {
-        // initial load: jump instantly to the chosen front orbit
         jumpToOrbit(FRONT_CAMERA_ORBIT, true);
         initialLoadDone = true;
       }
@@ -181,22 +193,24 @@
       const currentSrcAttr = modelViewer.getAttribute("src");
 
       if (currentSrcAttr !== targetFileUrl) {
-        try {
-          savedOrbitToRestore = modelViewer.cameraOrbit || null;
-        } catch (err) {
-          savedOrbitToRestore = null;
-        }
-
         showSpinnerMessage("Loading model…");
         modelViewer.setAttribute("src", targetFileUrl);
 
         modelViewer.addEventListener("load", () => {
-          if (savedOrbitToRestore) {
-            // restore orbit by setting cameraOrbit (no instant jump) so the viewer animates to the saved view
+          if (savedTargetToRestore) {
             try {
-              modelViewer.cameraOrbit = savedOrbitToRestore;
+              modelViewer.cameraTarget = savedTargetToRestore;
+            } catch (err) { /* ignore */ }
+          }
+
+          if (savedOrbitToRestore) {
+            try {
+              requestAnimationFrame(() => {
+                modelViewer.cameraOrbit = savedOrbitToRestore;
+              });
             } catch (err) { /* ignore */ }
             savedOrbitToRestore = null;
+            savedTargetToRestore = null;
           }
           applyVariant(targetVariantName);
           showViewer();
@@ -210,6 +224,8 @@
       button.addEventListener("click", (e) => {
         document.querySelectorAll(".size-btn").forEach(btn => btn.classList.remove("active"));
         e.target.classList.add("active");
+        // Save current camera immediately to ensure exact view is preserved when switching models
+        saveCurrentCamera();
         selectedModel = e.target.getAttribute("data-size");
         updateConfigurator();
       });
@@ -225,9 +241,8 @@
     });
 
     const PRESETS = {
-      // swap front/back so buttons match expected directions
-      front: "180deg 75deg auto",
-      back: "0deg 75deg auto",
+      front: "0deg 75deg auto",
+      back: "180deg 75deg auto",
       left: "90deg 75deg auto",
       right: "270deg 75deg auto",
       top: "0deg 90deg auto"
@@ -239,7 +254,6 @@
       const view = btn.getAttribute("data-view");
       const orbit = PRESETS[view];
       if (orbit) {
-        // animate transitions for user interactions (instant=false)
         jumpToOrbit(orbit, false);
       }
     });
@@ -247,7 +261,8 @@
     modelViewer.addEventListener("camera-change", () => {
       try {
         savedOrbitToRestore = modelViewer.cameraOrbit;
-      } catch (err) { }
+        savedTargetToRestore = modelViewer.cameraTarget;
+      } catch (err) { /* ignore */ }
     });
   </script>
 
