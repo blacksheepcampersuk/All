@@ -230,14 +230,27 @@
           }
 
           // Determine orbit to restore or initial orbit
-          let orbitToApply = savedOrbitToRestore || FRONT_CAMERA_ORBIT;
-
-          // Apply any per-model azimuth adjustment so the model's "front" faces camera
-          const modelFile = selectedModel;
-          const adjust = MODEL_AZIMUTH_ADJUST[modelFile] || 0;
-          if (adjust !== 0) {
-            orbitToApply = adjustOrbitAzimuth(orbitToApply, adjust);
-          }
+-          let orbitToApply = savedOrbitToRestore || FRONT_CAMERA_ORBIT;
+-
+-          // Apply any per-model azimuth adjustment so the model's "front" faces camera
+-          const modelFile = selectedModel;
+-          const adjust = MODEL_AZIMUTH_ADJUST[modelFile] || 0;
+-          if (adjust !== 0) {
+-            orbitToApply = adjustOrbitAzimuth(orbitToApply, adjust);
+-          }
++          let orbitToApply;
++          if (savedOrbitToRestore) {
++            // If the user had an explicit view, preserve it exactly (no per-model adjustment)
++            orbitToApply = savedOrbitToRestore;
++          } else {
++            // No saved view — use the default front orbit and apply any per-model correction
++            orbitToApply = FRONT_CAMERA_ORBIT;
++            const modelFile = selectedModel;
++            const adjust = MODEL_AZIMUTH_ADJUST[modelFile] || 0;
++            if (adjust !== 0) {
++              orbitToApply = adjustOrbitAzimuth(orbitToApply, adjust);
++            }
++          }
 
           if (orbitToApply) {
             try {
