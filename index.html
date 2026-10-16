@@ -90,6 +90,13 @@
         <button class="door-btn" data-door="Cream">Cream</button>
       </div>
     </div>
+
+    <div class="row">
+      <span class="row-title">Contact:</span>
+      <div class="btn-group">
+        <button id="request-quote-btn">Request quote</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -277,6 +284,19 @@
         userHasManualView = true;
         savedOrbitToRestore = modelViewer.cameraOrbit;
       } catch (err) { }
+    });
+
+    // Map model filename strings -> Wix form page URL (Ewe & Belted provided)
+    const WIX_FORM_URLS = {
+      'Ewe.glb': 'https://blacksheepcampers.wixforms.com/f/7516869375056413788',
+      'Twin%20Bench.glb': 'https://blacksheepcampers.wixforms.com/f/7516871135326110811',
+      'Belted%20Ewe.glb': 'https://blacksheepcampers.wixforms.com/f/7516871286258140321'
+    };
+
+    document.getElementById('request-quote-btn').addEventListener('click', () => {
+      const modelKey = selectedModel || '';
+      const target = WIX_FORM_URLS[modelKey] || WIX_FORM_URLS['Twin%20Bench.glb'];
+      window.open(target, '_blank');
     });
   </script>
 
