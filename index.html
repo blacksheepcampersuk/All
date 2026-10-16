@@ -63,14 +63,6 @@
       </div>
     </div>
 
-    <!-- ROW 3: Worktop Materials (Changes internal GLB Variant) -->
-    <div class="row">
-      <span class="row-title">Worktop:</span>
-      <div class="btn-group">
-        <button class="worktop-btn active" data-worktop="Oak">Oak</button>
-        <button class="worktop-btn" data-worktop="Birch">Birch</button>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -80,13 +72,12 @@
     // selectedModel holds the exact filename used as the model-viewer src
     let selectedModel = "Twin%20Bench.glb";
     let selectedDoor = "Green";
-    let selectedWorktop = "Oak";
 
     function updateConfigurator() {
       // 1. targetFile is the filename (relative path) we want to load
       const targetFileUrl = selectedModel;
-      // 2. Build the combination variant string (e.g. "Green_Oak")
-      const targetVariantName = `${selectedDoor}_${selectedWorktop}`;
+      // 2. Build the variant name (now just the door color, since worktop was removed)
+      const targetVariantName = `${selectedDoor}`;
 
       // Normalize current src form (compare attribute to attribute so the comparison is consistent)
       const currentSrcAttr = modelViewer.getAttribute("src");
@@ -126,16 +117,6 @@
         document.querySelectorAll(".door-btn").forEach(btn => btn.classList.remove("active"));
         e.target.classList.add("active");
         selectedDoor = e.target.getAttribute("data-door");
-        updateConfigurator();
-      });
-    });
-
-    // Handle Worktop Buttons
-    document.querySelectorAll(".worktop-btn").forEach(button => {
-      button.addEventListener("click", (e) => {
-        document.querySelectorAll(".worktop-btn").forEach(btn => btn.classList.remove("active"));
-        e.target.classList.add("active");
-        selectedWorktop = e.target.getAttribute("data-worktop");
         updateConfigurator();
       });
     });
