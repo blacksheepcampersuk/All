@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Complete Cupboard Configurator</title>
+  <!-- Preload the default model to reduce initial latency -->
+  <link rel="preload" href="Twin%20Bench.glb" as="fetch" crossorigin>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
   
   <style>
@@ -21,6 +23,16 @@
     .row { display: flex; gap: 10px; align-items: center; }
     .row-title { font-weight: 600; min-width: 100px; color: #333; }
     .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Simple overlay styles for loading / error state */
+    .viewer-wrap { position: relative; width: 100%; }
+    .viewer-overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+      border-radius: 12px; font-weight: 600; color: #333; z-index: 3;
+    }
+    .spinner-dot { width:10px; height:10px; border-radius:50%; background:#0076ff; margin:0 4px; animation:spin 1s infinite; }
+    @keyframes spin { 0% { transform: translateY(0);} 50% { transform: translateY(-6px);} 100% { transform: translateY(0);} }
     
     button { 
       padding: 10px 16px; font-size: 14px; cursor: pointer; 
@@ -34,11 +46,17 @@
 <body>
 
   <!-- The 3D View Canvas (Starts with the Twin Bench file) -->
-  <model-viewer 
-    id="cupboard-viewer" 
-    src="Twin%20Bench.glb" 
-    camera-controls>
-  </model-viewer>
+  <div class="viewer-wrap">
+    <model-viewer 
+      id="cupboard-viewer" 
+      src="Twin%20Bench.glb" 
+      camera-controls
+      style="width:100%; height:55vh; visibility:hidden; opacity:0; transition:opacity .25s; border-radius:12px;">
+    </model-viewer>
+
+    <!-- Loading / Error overlay -->
+    <div id="viewer-spinner" class="viewer-overlay">Loading model…</div>
+  </div>
 
   <div class="configurator-panel">
     <!-- ROW 1: Models (Ewe / Twin-bench / Belted Ewe) -->
@@ -67,16 +85,70 @@
 
   <script>
     const modelViewer = document.querySelector("#cupboard-viewer");
-    
+    const spinner = document.querySelector("#viewer-spinner");
+
     // Track global configuration state
     // selectedModel holds the exact filename used as the model-viewer src
     let selectedModel = "Twin%20Bench.glb";
     let selectedDoor = "Green";
 
+    // Show/hide helpers for viewer and spinner
+    function showViewer() {
+      spinner.style.display = "none";
+      modelViewer.style.visibility = "visible";
+      modelViewer.style.opacity = "1";
+    }
+    function showSpinnerMessage(msg) {
+      spinner.style.display = "flex";
+      spinner.textContent = msg;
+      modelViewer.style.visibility = "hidden";
+      modelViewer.style.opacity = "0";
+    }
+
+    // Ensure initial spinner visible while the first model downloads
+    showSpinnerMessage("Loading model…");
+
+    // Apply variant safely (guard in case variantName isn't supported)
+    function applyVariant(name) {
+      try {
+        if (typeof modelViewer.variantName !== "undefined") {
+          modelViewer.variantName = name;
+        }
+      } catch (err) {
+        console.warn("Error applying variant:", err);
+      }
+    }
+
+    // Global retry counter for model loads
+    let retryCount = 0;
+
+    // When the model finishes loading, show it and apply current variant
+    modelViewer.addEventListener("load", () => {
+      applyVariant(selectedDoor);
+      showViewer();
+      retryCount = 0; // reset retries on success
+    }, { once: true });
+
+    // Error handler: retry a few times with backoff, then show message
+    modelViewer.addEventListener("error", (ev) => {
+      console.error("model-viewer error event:", ev);
+      if (retryCount < 3) {
+        retryCount++;
+        showSpinnerMessage(`Model failed to load — retrying (${retryCount}/3)…`);
+        setTimeout(() => {
+          const src = modelViewer.getAttribute("src");
+          modelViewer.removeAttribute("src");
+          setTimeout(() => modelViewer.setAttribute("src", src), 50);
+        }, 900 * retryCount);
+      } else {
+        showSpinnerMessage("Model failed to load. Check network or upload the GLB.");
+      }
+    });
+
     function updateConfigurator() {
       // 1. targetFile is the filename (relative path) we want to load
       const targetFileUrl = selectedModel;
-      // 2. Build the variant name (now just the door color, since worktop was removed)
+      // 2. Build the variant name (door color only)
       const targetVariantName = `${selectedDoor}`;
 
       // Normalize current src form (compare attribute to attribute so the comparison is consistent)
@@ -84,20 +156,20 @@
 
       // 3. If the model changed, update the source file first
       if (currentSrcAttr !== targetFileUrl) {
+        // Show spinner while the new model downloads
+        showSpinnerMessage("Loading model…");
+
         // Use setAttribute so getAttribute later returns the same relative string
         modelViewer.setAttribute("src", targetFileUrl);
 
         // Wait for the new model to finish downloading before setting its color variant
         modelViewer.addEventListener("load", () => {
-          if (typeof modelViewer.variantName !== "undefined") {
-            modelViewer.variantName = targetVariantName;
-          } else {
-            console.warn("model-viewer variantName not available; ensure your GLB has variants named:", targetVariantName);
-          }
+          applyVariant(targetVariantName);
+          showViewer();
         }, { once: true });
       } else {
         // If the model didn't change, just update the color variant instantly
-        modelViewer.variantName = targetVariantName;
+        applyVariant(targetVariantName);
       }
     }
 
@@ -119,11 +191,6 @@
         selectedDoor = e.target.getAttribute("data-door");
         updateConfigurator();
       });
-    });
-
-    // Optional: log model-viewer errors to console to make debugging easier
-    modelViewer.addEventListener("error", (ev) => {
-      console.error("model-viewer error event:", ev);
     });
   </script>
 
