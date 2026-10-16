@@ -1,0 +1,16 @@
+{
+  "id": "ewe",
+  "title": "The ewe shape - furniture only",
+  "price": "£1,395.00",
+  "images": {
+    "Green": "green.svg",
+    "Black": "black.svg",
+    "White": "white.svg",
+    "Cream": "cream.svg"
+  },
+  "description": "Looking for a package with a social seating layout and tons of storage? Then the u-shape layout is exactly what you need.",
+  "productInfo": "Dimensions, materials and other product-specific info.",
+  "coreFeatures": ["Modular seating layout", "High-quality ply panels"],
+  "additionalFeatures": ["Optional drawers", "Weatherproof finish"],
+  "modelFormUrlKey": "Twin%20Bench.glb"
+}
