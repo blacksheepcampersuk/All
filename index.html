@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Complete Cupboard Configurator</title>
-  <link rel="preload" href="Twin%20Bench.glb" as="fetch" crossorigin>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
   
   <style>
@@ -16,35 +15,16 @@
     }
     model-viewer { width: 100%; height: 55vh; background: #ffffff; border-radius: 12px; }
     
-    .viewer-wrap { position: relative; width: 100%; max-width: 1100px; }
-    .viewer-overlay {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
-      border-radius: 12px; font-weight: 600; color: #333; z-index: 3;
-    }
-
-    .view-controls {
-      position: absolute; top: 12px; right: 12px; z-index: 6;
-      display: flex; flex-direction: column; gap: 8px;
-      background: rgba(255,255,255,0.9); padding: 8px; border-radius: 8px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-    }
-    .view-controls button {
-      padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #ddd;
-      background: white; cursor: pointer;
-    }
-    .view-controls .row { display:flex; gap:8px; }
-
     .configurator-panel {
-      margin-top: 16px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 500px;
+      margin-top: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 500px;
     }
     .row { display: flex; gap: 10px; align-items: center; }
     .row-title { font-weight: 600; min-width: 100px; color: #333; }
     .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
-
+    
     button { 
       padding: 10px 16px; font-size: 14px; cursor: pointer; 
-      border-radius: 6px; border: 1px solid #ccc; background: white; transition: all 0.15s;
+      border-radius: 6px; border: 1px solid #ccc; background: white; transition: all 0.2s;
     }
     button.active { 
       background: #0076ff; color: white; border-color: #0076ff; font-weight: bold;
@@ -53,235 +33,88 @@
 </head>
 <body>
 
-  <div class="viewer-wrap">
-    <model-viewer 
-      id="cupboard-viewer" 
-      src="Twin%20Bench.glb" 
-      camera-controls
-      style="width:100%; height:55vh; visibility:hidden; opacity:0; transition:opacity .25s; border-radius:12px;">
-    </model-viewer>
-
-    <!-- Replace preset controls with rotate-left / rotate-right -->
-    <div class="view-controls" id="view-controls">
-      <div class="row">
-        <button data-rotate="left">Rotate Left</button>
-        <button data-rotate="right">Rotate Right</button>
-      </div>
-    </div>
-
-    <div id="viewer-spinner" class="viewer-overlay">Loading model…</div>
-  </div>
+  <!-- The 3D View Canvas (Starts with the small cupboard file) -->
+  <model-viewer 
+    id="cupboard-viewer" 
+    src="Twin%20Bench.glb" 
+    camera-controls>
+  </model-viewer>
 
   <div class="configurator-panel">
+    <!-- ROW 1: Sizes (Changes the actual GLB file) -->
     <div class="row">
-      <span class="row-title">Model:</span>
+      <span class="row-title">Size:</span>
       <div class="btn-group">
-        <button class="size-btn" data-size="Ewe.glb">Ewe</button>
-        <button class="size-btn active" data-size="Twin%20Bench.glb">Twin-bench</button>
-        <button class="size-btn" data-size="Belted%20Ewe.glb">Belted Ewe</button>
+        <button class="size-btn active" data-size="small">Small</button>
+        <button class="size-btn" data-size="medium">Medium</button>
+        <button class="size-btn" data-size="large">Large</button>
       </div>
     </div>
 
+    <!-- ROW 2: Door Colours (Changes internal GLB Variant) -->
     <div class="row">
       <span class="row-title">Doors:</span>
       <div class="btn-group">
         <button class="door-btn active" data-door="Green">Green</button>
-        <button class="door-btn" data-door="Blue">Blue</button>
-        <button class="door-btn" data-door="Black">Black</button>
-        <button class="door-btn" data-door="Cream">Cream</button>
+        <button class="door-btn" data-door="blue">Blue</button>
+        <button class="door-btn" data-door="black">Black</button>
+        <button class="door-btn" data-door="cream">Cream</button>
+      </div>
+    </div>
+
+    <!-- ROW 3: Worktop Materials (Changes internal GLB Variant) -->
+    <div class="row">
+      <span class="row-title">Worktop:</span>
+      <div class="btn-group">
+        <button class="worktop-btn active" data-worktop="Oak">Oak</button>
+        <button class="worktop-btn" data-worktop="Birch">Birch</button>
       </div>
     </div>
   </div>
 
   <script>
     const modelViewer = document.querySelector("#cupboard-viewer");
-    const spinner = document.querySelector("#viewer-spinner");
-    const viewControls = document.querySelector("#view-controls");
-
-    let selectedModel = "Twin%20Bench.glb";
+    
+    // Track global configuration state
+    let selectedSize = "small";
     let selectedDoor = "Green";
+    let selectedWorktop = "Oak";
 
-    // initial front orbit used only on first load
-    const FRONT_CAMERA_ORBIT = "135deg 75deg auto";
-
-    // Per-model azimuth adjustment in degrees to correct model-specific orientation
-    // If a model's "front" is rotated relative to others, add the number of degrees
-    // needed to bring the camera to face its front. Example: Ewe.glb needs +180deg.
-    const MODEL_AZIMUTH_ADJUST = {
-      'Ewe.glb': 180,
-      // Add other models here if needed: 'Twin%20Bench.glb': 0
-    };
-
-    // rotation step (degrees per click)
-    const ROTATION_STEP = 45; // changed from 30 to 45 as requested
-
-    let initialLoadDone = false;
-    let savedOrbitToRestore = null;
-    let savedTargetToRestore = null;
-
-    function showViewer() {
-      spinner.style.display = "none";
-      modelViewer.style.visibility = "visible";
-      modelViewer.style.opacity = "1";
-    }
-    function showSpinnerMessage(msg) {
-      spinner.style.display = "flex";
-      spinner.textContent = msg;
-      modelViewer.style.visibility = "hidden";
-      modelViewer.style.opacity = "0";
-    }
-
-    showSpinnerMessage("Loading model…");
-
-    function applyVariant(name) {
-      try {
-        if (typeof modelViewer.variantName !== "undefined") {
-          modelViewer.variantName = name;
-        }
-      } catch (err) {
-        console.warn("Error applying variant:", err);
-      }
-    }
-
-    function jumpToOrbit(orbitString, instant = false) {
-      try {
-        modelViewer.cameraOrbit = orbitString;
-        if (instant && typeof modelViewer.jumpCameraToGoal === 'function') {
-          modelViewer.jumpCameraToGoal();
-        }
-      } catch (err) {
-        console.warn("Error setting camera orbit:", err);
-      }
-    }
-
-    function adjustOrbitAzimuth(orbitString, addDegrees) {
-      try {
-        if (!orbitString) return orbitString;
-        const parts = orbitString.trim().split(/\s+/);
-        if (parts.length < 3) return orbitString;
-        const az = parts[0];
-        const elev = parts[1];
-        const radius = parts[2];
-        const azMatch = az.match(/(-?[0-9.]+)deg/);
-        if (!azMatch) return orbitString;
-        let azValue = parseFloat(azMatch[1]);
-        azValue = (azValue + addDegrees) % 360;
-        if (azValue < 0) azValue += 360;
-        return `${azValue}deg ${elev} ${radius}`;
-      } catch (err) {
-        return orbitString;
-      }
-    }
-
-    function saveCurrentCamera() {
-      try {
-        savedOrbitToRestore = modelViewer.cameraOrbit || null;
-      } catch (err) {
-        savedOrbitToRestore = null;
-      }
-      try {
-        savedTargetToRestore = modelViewer.cameraTarget || null;
-      } catch (err) {
-        savedTargetToRestore = null;
-      }
-    }
-
-    modelViewer.addEventListener("load", () => {
-      if (!initialLoadDone) {
-        // initial load: snap to the chosen front orbit
-        jumpToOrbit(FRONT_CAMERA_ORBIT, true);
-        initialLoadDone = true;
-      }
-      applyVariant(selectedDoor);
-      showViewer();
-    }, { once: true });
-
-    let retryCount = 0;
-    modelViewer.addEventListener("error", (ev) => {
-      console.error("model-viewer error event:", ev);
-      if (retryCount < 3) {
-        retryCount++;
-        showSpinnerMessage(`Model failed to load — retrying (${retryCount}/3)…`);
-        setTimeout(() => {
-          const src = modelViewer.getAttribute("src");
-          modelViewer.removeAttribute("src");
-          setTimeout(() => modelViewer.setAttribute("src", src), 50);
-        }, 900 * retryCount);
-      } else {
-        showSpinnerMessage("Model failed to load. Check network or upload the GLB.");
-      }
-    });
+    // Change this to your exact live GitHub Pages folder URL path
+    const githubPagesUrl = "https://github.com/blacksheepcampersuk/All";
 
     function updateConfigurator() {
-      const targetFileUrl = selectedModel;
-      const targetVariantName = `${selectedDoor}`;
-      const currentSrcAttr = modelViewer.getAttribute("src");
+      // 1. Build the correct file name based on selected size
+      const targetFileUrl = `${githubPagesUrl}cupboard_${selectedSize}.glb`;
+      
+      // 2. Build the combination variant string (e.g. "Green_Oak")
+      const targetVariantName = `${selectedDoor}_${selectedWorktop}`;
 
-      if (currentSrcAttr !== targetFileUrl) {
-        showSpinnerMessage("Loading model…");
-        modelViewer.setAttribute("src", targetFileUrl);
-
+      // 3. If the user changed the size, update the source file first
+      if (modelViewer.getAttribute("src") !== targetFileUrl) {
+        modelViewer.src = targetFileUrl;
+        
+        // Wait for the new size model to finish downloading before setting its color variant
         modelViewer.addEventListener("load", () => {
-          // Restore camera target first (helps keep panning consistent)
-          if (savedTargetToRestore) {
-            try {
-              modelViewer.cameraTarget = savedTargetToRestore;
-            } catch (err) { /* ignore */ }
-          }
-
-          // Determine orbit to restore or initial orbit
--          let orbitToApply = savedOrbitToRestore || FRONT_CAMERA_ORBIT;
--
--          // Apply any per-model azimuth adjustment so the model's "front" faces camera
--          const modelFile = selectedModel;
--          const adjust = MODEL_AZIMUTH_ADJUST[modelFile] || 0;
--          if (adjust !== 0) {
--            orbitToApply = adjustOrbitAzimuth(orbitToApply, adjust);
--          }
-+          let orbitToApply;
-+          if (savedOrbitToRestore) {
-+            // If the user had an explicit view, preserve it exactly (no per-model adjustment)
-+            orbitToApply = savedOrbitToRestore;
-+          } else {
-+            // No saved view — use the default front orbit and apply any per-model correction
-+            orbitToApply = FRONT_CAMERA_ORBIT;
-+            const modelFile = selectedModel;
-+            const adjust = MODEL_AZIMUTH_ADJUST[modelFile] || 0;
-+            if (adjust !== 0) {
-+              orbitToApply = adjustOrbitAzimuth(orbitToApply, adjust);
-+            }
-+          }
-
-          if (orbitToApply) {
-            try {
-              requestAnimationFrame(() => {
-                modelViewer.cameraOrbit = orbitToApply;
-              });
-            } catch (err) { /* ignore */ }
-            savedOrbitToRestore = null;
-            savedTargetToRestore = null;
-          }
-
-          applyVariant(targetVariantName);
-          showViewer();
-        }, { once: true });
+          modelViewer.variantName = targetVariantName;
+        }, { once: true }); // Running 'once: true' prevents duplicating event triggers
       } else {
-        applyVariant(targetVariantName);
+        // If the size didn't change, just update the color variant instantly
+        modelViewer.variantName = targetVariantName;
       }
     }
 
-    // Save camera and switch model (ensures exact view is kept)
+    // Handle Size Buttons
     document.querySelectorAll(".size-btn").forEach(button => {
       button.addEventListener("click", (e) => {
         document.querySelectorAll(".size-btn").forEach(btn => btn.classList.remove("active"));
         e.target.classList.add("active");
-        // Save current camera immediately to ensure exact view is preserved when switching models
-        saveCurrentCamera();
-        selectedModel = e.target.getAttribute("data-size");
+        selectedSize = e.target.getAttribute("data-size");
         updateConfigurator();
       });
     });
 
+    // Handle Door Buttons
     document.querySelectorAll(".door-btn").forEach(button => {
       button.addEventListener("click", (e) => {
         document.querySelectorAll(".door-btn").forEach(btn => btn.classList.remove("active"));
@@ -291,48 +124,14 @@
       });
     });
 
-    // New: rotate-left / rotate-right handler (uses ROTATION_STEP)
-    function rotateBy(deg) {
-      try {
-        const orbit = modelViewer.cameraOrbit || '';
-        // orbit format: "<azimuth> <elevation> <radius>" e.g. "135deg 75deg auto"
-        const parts = orbit.trim().split(/\s+/);
-        if (parts.length < 3) {
-          // fallback: animate to front then apply small rotation
-          jumpToOrbit(FRONT_CAMERA_ORBIT, false);
-          return;
-        }
-        const az = parts[0];
-        const elev = parts[1];
-        const radius = parts[2];
-        const azMatch = az.match(/(-?[0-9.]+)deg/);
-        if (!azMatch) {
-          jumpToOrbit(FRONT_CAMERA_ORBIT, false);
-          return;
-        }
-        let azValue = parseFloat(azMatch[1]);
-        azValue = (azValue + deg) % 360;
-        if (azValue < 0) azValue += 360;
-        modelViewer.cameraOrbit = `${azValue}deg ${elev} ${radius}`;
-      } catch (err) {
-        console.warn('rotateBy error', err);
-      }
-    }
-
-    viewControls.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('button[data-rotate]');
-      if (!btn) return;
-      const dir = btn.getAttribute('data-rotate');
-      if (dir === 'left') rotateBy(ROTATION_STEP); // rotate left
-      if (dir === 'right') rotateBy(-ROTATION_STEP); // rotate right
-    });
-
-    // Keep savedOrbitToRestore up-to-date as the user interacts
-    modelViewer.addEventListener("camera-change", () => {
-      try {
-        savedOrbitToRestore = modelViewer.cameraOrbit;
-        savedTargetToRestore = modelViewer.cameraTarget;
-      } catch (err) { /* ignore */ }
+    // Handle Worktop Buttons
+    document.querySelectorAll(".worktop-btn").forEach(button => {
+      button.addEventListener("click", (e) => {
+        document.querySelectorAll(".worktop-btn").forEach(btn => btn.classList.remove("active"));
+        e.target.classList.add("active");
+        selectedWorktop = e.target.getAttribute("data-worktop");
+        updateConfigurator();
+      });
     });
   </script>
 
