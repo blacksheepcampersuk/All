@@ -49,6 +49,13 @@
     button.active { 
       background: #0076ff; color: white; border-color: #0076ff; font-weight: bold;
     }
+
+    /* Modal styles for embedded Wix form */
+    #form-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); z-index: 9999; }
+    #form-modal-card { width: 92%; max-width: 960px; height: 86%; background: #fff; border-radius: 10px; overflow: hidden; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    #form-modal-close { position: absolute; right: 12px; top: 12px; z-index: 5; padding: 8px 10px; border-radius: 6px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+    #form-modal-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6)); z-index: 2; }
+    #form-modal-iframe { width: 100%; height: 100%; border: 0; display: block; }
   </style>
 </head>
 <body>
@@ -96,6 +103,15 @@
       <div class="btn-group">
         <button id="request-quote-btn">Request quote</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal for embedding the Wix form -->
+  <div id="form-modal" role="dialog" aria-modal="true">
+    <div id="form-modal-card">
+      <button id="form-modal-close" aria-label="Close form">Close</button>
+      <div id="form-modal-spinner">Loading form…</div>
+      <iframe id="form-modal-iframe" src="" frameborder="0" title="Quote form"></iframe>
     </div>
   </div>
 
@@ -293,10 +309,54 @@
       'Belted%20Ewe.glb': 'https://blacksheepcampers.wixforms.com/f/7516871286258140321'
     };
 
+    // Modal elements
+    const modal = document.getElementById('form-modal');
+    const modalIframe = document.getElementById('form-modal-iframe');
+    const modalSpinner = document.getElementById('form-modal-spinner');
+    const modalClose = document.getElementById('form-modal-close');
+
+    async function openFormOverlay(url) {
+      modalIframe.src = '';
+      modalSpinner.style.display = 'flex';
+      modal.style.display = 'flex';
+
+      let didLoad = false;
+      const loadPromise = new Promise((resolve) => {
+        modalIframe.onload = () => {
+          didLoad = true;
+          modalSpinner.style.display = 'none';
+          resolve(true);
+        };
+        modalIframe.onerror = () => {
+          didLoad = false;
+          resolve(false);
+        };
+      });
+
+      modalIframe.src = url;
+
+      const winner = await Promise.race([
+        loadPromise,
+        new Promise((res) => setTimeout(() => res(false), 3500))
+      ]);
+
+      if (!winner || !didLoad) {
+        modal.style.display = 'none';
+        modalIframe.src = '';
+        window.open(url, '_blank');
+        alert('The form could not be embedded in this page, so it has been opened in a new tab instead.');
+      }
+    }
+
+    modalClose.addEventListener('click', () => {
+      modal.style.display = 'none';
+      modalIframe.src = '';
+    });
+
     document.getElementById('request-quote-btn').addEventListener('click', () => {
       const modelKey = selectedModel || '';
       const target = WIX_FORM_URLS[modelKey] || WIX_FORM_URLS['Twin%20Bench.glb'];
-      window.open(target, '_blank');
+      openFormOverlay(target);
     });
   </script>
 
