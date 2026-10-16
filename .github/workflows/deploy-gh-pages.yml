@@ -4,7 +4,6 @@ on: push: branches: - feature/product-page workflow_dispatch:
 
 jobs: build: runs-on: ubuntu-latest steps: - uses: actions/checkout@v4
 
-Code
   - name: Use Node.js
     uses: actions/setup-node@v4
     with:
