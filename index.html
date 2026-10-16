@@ -92,6 +92,9 @@
     let selectedModel = "Twin%20Bench.glb";
     let selectedDoor = "Green";
 
+    // Desired camera orbit to face the model front. Tweak azimuth/elevation as needed.
+    const FRONT_CAMERA_ORBIT = "180deg 75deg auto"; // azimuth elevation radius (auto keeps default distance)
+
     // Show/hide helpers for viewer and spinner
     function showViewer() {
       spinner.style.display = "none";
@@ -119,11 +122,25 @@
       }
     }
 
+    // Set the camera to face the front immediately (no animation)
+    function setCameraToFrontInstant() {
+      try {
+        modelViewer.cameraOrbit = FRONT_CAMERA_ORBIT;
+        // jumpCameraToGoal moves the camera instantly to the set orbit
+        if (typeof modelViewer.jumpCameraToGoal === 'function') {
+          modelViewer.jumpCameraToGoal();
+        }
+      } catch (err) {
+        console.warn("Error setting camera orbit:", err);
+      }
+    }
+
     // Global retry counter for model loads
     let retryCount = 0;
 
-    // When the model finishes loading, show it and apply current variant
+    // When the model finishes loading, set camera to front, apply variant, and show it
     modelViewer.addEventListener("load", () => {
+      setCameraToFrontInstant();
       applyVariant(selectedDoor);
       showViewer();
       retryCount = 0; // reset retries on success
@@ -164,6 +181,8 @@
 
         // Wait for the new model to finish downloading before setting its color variant
         modelViewer.addEventListener("load", () => {
+          // When a new model loads, also set camera front so viewers see the front immediately
+          setCameraToFrontInstant();
           applyVariant(targetVariantName);
           showViewer();
         }, { once: true });
