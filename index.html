@@ -107,6 +107,7 @@
     let selectedModel = "Twin%20Bench.glb";
     let selectedDoor = "Green";
 
+    // initial front orbit used only on first load
     const FRONT_CAMERA_ORBIT = "135deg 75deg auto";
 
     let initialLoadDone = false;
@@ -136,10 +137,11 @@
       }
     }
 
-    function jumpToOrbit(orbitString) {
+    // jumpToOrbit: if instant=true use instant jump, otherwise set cameraOrbit to animate
+    function jumpToOrbit(orbitString, instant = true) {
       try {
         modelViewer.cameraOrbit = orbitString;
-        if (typeof modelViewer.jumpCameraToGoal === 'function') {
+        if (instant && typeof modelViewer.jumpCameraToGoal === 'function') {
           modelViewer.jumpCameraToGoal();
         }
       } catch (err) {
@@ -149,7 +151,8 @@
 
     modelViewer.addEventListener("load", () => {
       if (!initialLoadDone) {
-        jumpToOrbit(FRONT_CAMERA_ORBIT);
+        // initial load: jump instantly to the chosen front orbit
+        jumpToOrbit(FRONT_CAMERA_ORBIT, true);
         initialLoadDone = true;
       }
       applyVariant(selectedDoor);
@@ -189,7 +192,10 @@
 
         modelViewer.addEventListener("load", () => {
           if (savedOrbitToRestore) {
-            jumpToOrbit(savedOrbitToRestore);
+            // restore orbit by setting cameraOrbit (no instant jump) so the viewer animates to the saved view
+            try {
+              modelViewer.cameraOrbit = savedOrbitToRestore;
+            } catch (err) { /* ignore */ }
             savedOrbitToRestore = null;
           }
           applyVariant(targetVariantName);
@@ -219,8 +225,9 @@
     });
 
     const PRESETS = {
-      front: "0deg 75deg auto",
-      back: "180deg 75deg auto",
+      // swap front/back so buttons match expected directions
+      front: "180deg 75deg auto",
+      back: "0deg 75deg auto",
       left: "90deg 75deg auto",
       right: "270deg 75deg auto",
       top: "0deg 90deg auto"
@@ -232,7 +239,8 @@
       const view = btn.getAttribute("data-view");
       const orbit = PRESETS[view];
       if (orbit) {
-        jumpToOrbit(orbit);
+        // animate transitions for user interactions (instant=false)
+        jumpToOrbit(orbit, false);
       }
     });
 
