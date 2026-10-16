@@ -1,110 +1,139 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <title>&lt;model-viewer&gt; template</title>
-    <meta charset="utf-8">
-    <meta name="description" content="&lt;model-viewer&gt; template">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link type="text/css" href="./styles.css" rel="stylesheet"/>
-  </head>
-  <body>
-    <model-viewer
-  id="product-viewer"
-  src="Twin%20Bench.glb"
-  ar
-  ar-modes="webxr scene-viewer quick-look"
-  camera-controls
-  tone-mapping="neutral"
-  poster="poster.webp"
-  shadow-intensity="1"
-  shadow-softness="1"
-  exposure="1"
-  style="width:100%; height:600px;">
-</model-viewer>
- <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-<script>
-  const modelViewer = document.querySelector("#product-viewer");
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Cupboard Configurator</title>
+  <script type="module" src="https://googleapis.com"></script>
+  
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+      display: flex; flex-direction: column; align-items: center; 
+      justify-content: center; min-height: 100vh; margin: 0; background: #fbfbfb;
+      padding: 20px; box-sizing: border-box;
+    }
+    model-viewer { width: 100%; height: 55vh; background: #ffffff; border-radius: 12px; }
+    
+    .configurator-panel {
+      margin-top: 24px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 500px;
+    }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .row-title { font-weight: 600; min-width: 100px; color: #333; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    
+    button { 
+      padding: 10px 16px; font-size: 14px; cursor: pointer; 
+      border-radius: 6px; border: 1px solid #ccc; background: white; transition: all 0.2s;
+    }
+    button.active { 
+      background: #0076ff; color: white; border-color: #0076ff; font-weight: bold;
+    }
+  </style>
+</head>
+<body>
 
-  if (!modelViewer) {
-    console.error("No <model-viewer> found with id #product-viewer");
-  } else {
-    // Wait until the 3D model finishes downloading
-    modelViewer.addEventListener("load", () => { const buttons = document.querySelectorAll(".color-btn");
-      console.log("Available variants found in GLB:", modelViewer.availableVariants);
+  <!-- The 3D View Canvas (Starts with the small cupboard file) -->
+  <model-viewer 
+    id="cupboard-viewer" 
+    src="https://github.io" 
+    camera-controls>
+  </model-viewer>
 
-      // enable/disable buttons based on what's actually available
-      const available = modelViewer.availableVariants || [];
+  <div class="configurator-panel">
+    <!-- ROW 1: Sizes (Changes the actual GLB file) -->
+    <div class="row">
+      <span class="row-title">Size:</span>
+      <div class="btn-group">
+        <button class="size-btn active" data-size="small">Small</button>
+        <button class="size-btn" data-size="medium">Medium</button>
+        <button class="size-btn" data-size="large">Large</button>
+      </div>
+    </div>
 
-      buttons.forEach(button => {
-        const desired = button.dataset.variant; // casing as in HTML
-        // find a matching variant name (case-insensitive fallback)
-        const match = available.find(v => v === desired) ||
-                      available.find(v => v.toLowerCase() === desired.toLowerCase());
+    <!-- ROW 2: Door Colours (Changes internal GLB Variant) -->
+    <div class="row">
+      <span class="row-title">Doors:</span>
+      <div class="btn-group">
+        <button class="door-btn active" data-door="Green">Green</button>
+        <button class="door-btn" data-door="blue">Blue</button>
+        <button class="door-btn" data-door="black">Black</button>
+        <button class="door-btn" data-door="cream">Cream</button>
+      </div>
+    </div>
 
-        if (!match) {
-          // visually disable button if variant not present
-          button.disabled = true;
-          button.title = "Variant not found in model";
-        } else {
-          button.disabled = false;
-          button.title = "";
-        }
-
-        button.addEventListener("click", () => {
-          if (!match) return;
-          modelViewer.variantName = match; // set the exact name from GLB
-        });
-      });
-    });
-  }
-</script>
-    <!-- Color Choice Interface -->
-  <div class="controls">
-    <!-- These match your exact casing: Green, blue, black, cream -->
-    <button class="color-btn" data-variant="Green" data-color="#607d6b" aria-label="Green"></button>
-    <button class="color-btn" data-variant="Blue"  data-color="#5e7f90" aria-label="Blue"></button>
-    <button class="color-btn" data-variant="Black" data-color="#000000" aria-label="Black"></button>
-    <button class="color-btn" data-variant="Cream" data-color="#fefaef" aria-label="Cream"></button>
+    <!-- ROW 3: Worktop Materials (Changes internal GLB Variant) -->
+    <div class="row">
+      <span class="row-title">Worktop:</span>
+      <div class="btn-group">
+        <button class="worktop-btn active" data-worktop="Oak">Oak</button>
+        <button class="worktop-btn" data-worktop="Birch">Birch</button>
+      </div>
+    </div>
   </div>
 
   <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const modelViewer = document.querySelector('#product-viewer');
-  const buttons = Array.from(document.querySelectorAll('.color-btn'));
+    const modelViewer = document.querySelector("#cupboard-viewer");
+    
+    // Track global configuration state
+    let selectedSize = "small";
+    let selectedDoor = "Green";
+    let selectedWorktop = "Oak";
 
-  if (!modelViewer) {
-    console.error('No <model-viewer> with id #product-viewer');
-    return;
-  }
+    // Change this to your exact live GitHub Pages folder URL path
+    const githubPagesUrl = "https://github.io";
 
-  function markSelected(matchName) {
-    buttons.forEach(b => b.classList.toggle('selected', b.dataset.variant === matchName));
-  }
+    function updateConfigurator() {
+      // 1. Build the correct file name based on selected size
+      const targetFileUrl = `${githubPagesUrl}cupboard_${selectedSize}.glb`;
+      
+      // 2. Build the combination variant string (e.g. "Green_Oak")
+      const targetVariantName = `${selectedDoor}_${selectedWorktop}`;
 
-  modelViewer.addEventListener('load', () => {
-    const available = modelViewer.availableVariants || [];
+      // 3. If the user changed the size, update the source file first
+      if (modelViewer.getAttribute("src") !== targetFileUrl) {
+        modelViewer.src = targetFileUrl;
+        
+        // Wait for the new size model to finish downloading before setting its color variant
+        modelViewer.addEventListener("load", () => {
+          modelViewer.variantName = targetVariantName;
+        }, { once: true }); // Running 'once: true' prevents duplicating event triggers
+      } else {
+        // If the size didn't change, just update the color variant instantly
+        modelViewer.variantName = targetVariantName;
+      }
+    }
 
-    buttons.forEach(button => {
-      const desired = button.dataset.variant || '';
-      const color = button.dataset.color;
-      if (color) button.style.backgroundColor = color;
-
-      const match = available.find(v => v === desired) ||
-                    available.find(v => v.toLowerCase() === desired.toLowerCase());
-
-      button.disabled = !match;
-      button.title = match ? desired : 'Variant not found in model';
-
-      button.addEventListener('click', () => {
-        if (!match) return;
-        modelViewer.variantName = match;
-        markSelected(match);
+    // Handle Size Buttons
+    document.querySelectorAll(".size-btn").forEach(button => {
+      button.addEventListener("click", (e) => {
+        document.querySelectorAll(".size-btn").forEach(btn => btn.classList.remove("active"));
+        e.target.classList.add("active");
+        selectedSize = e.target.getAttribute("data-size");
+        updateConfigurator();
       });
     });
 
-    if (modelViewer.variantName) markSelected(modelViewer.variantName);
-  });
-});
-</script>
-  </body>
+    // Handle Door Buttons
+    document.querySelectorAll(".door-btn").forEach(button => {
+      button.addEventListener("click", (e) => {
+        document.querySelectorAll(".door-btn").forEach(btn => btn.classList.remove("active"));
+        e.target.classList.add("active");
+        selectedDoor = e.target.getAttribute("data-door");
+        updateConfigurator();
+      });
+    });
+
+    // Handle Worktop Buttons
+    document.querySelectorAll(".worktop-btn").forEach(button => {
+      button.addEventListener("click", (e) => {
+        document.querySelectorAll(".worktop-btn").forEach(btn => btn.classList.remove("active"));
+        e.target.classList.add("active");
+        selectedWorktop = e.target.getAttribute("data-worktop");
+        updateConfigurator();
+      });
+    });
+  </script>
+
+</body>
 </html>
