@@ -1,9 +1,45 @@
-
 name: Deploy to GitHub Pages
 
 on: push: branches: - feature/product-page workflow_dispatch:
 
-jobs: build: runs-on: ubuntu-latest steps:
+jobs: build: runs-on: ubuntu-latest steps: - uses: actions/checkout@v4
+- name: Use Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: '18'
+
+  - name: Cache node modules
+    uses: actions/cache@v4
+    with:
+      path: ~/.npm
+      key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      restore-keys: |
+        ${{ runner.os }}-node-
+
+  - name: Install dependencies
+    run: npm install
+
+  - name: Build
+    run: npm run build
+
+  - name: Deploy
+    uses: peaceiris/actions-gh-pages@v4
+    with:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
+      publish_dir: ./dist
+5. Commit directly to feature/product-page. 6. Verify the raw file looks correct: https://raw.githubusercontent.com/blacksheepcampersuk/All/feature/product-page/.github/workflows/deploy-gh-pages.yml
+
+Option 2 — Fix locally (recommended if the web UI keeps collapsing lines) Run these commands from your local clone (they overwrite the file with a correctly formatted version):
+
+git fetch origin git checkout feature/product-page
+
+cat > .github/workflows/deploy-gh-pages.yml <<'YAML' name: Deploy to GitHub Pages
+
+on: push: branches: - feature/product-page workflow_dispatch:
+
+jobs: build: runs-on: ubuntu-latest steps: - uses: actions/checkout@v4
+
+Code
   - name: Use Node.js
     uses: actions/setup-node@v4
     with:
