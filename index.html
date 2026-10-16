@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>&lt;model-viewer&gt; template</title>
+    <meta charset="utf-8">
+    <meta name="description" content="&lt;model-viewer&gt; template">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link type="text/css" href="./styles.css" rel="stylesheet"/>
+  </head>
+  <body>
+    <model-viewer
+  id="product-viewer"
+  src="Twin%20Bench.glb"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  camera-controls
+  tone-mapping="neutral"
+  poster="poster.webp"
+  shadow-intensity="1"
+  shadow-softness="1"
+  exposure="1"
+  style="width:100%; height:600px;">
+</model-viewer>
+ <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
+<script>
+  const modelViewer = document.querySelector("#product-viewer");
+
+  if (!modelViewer) {
+    console.error("No <model-viewer> found with id #product-viewer");
+  } else {
+    // Wait until the 3D model finishes downloading
+    modelViewer.addEventListener("load", () => { const buttons = document.querySelectorAll(".color-btn");
+      console.log("Available variants found in GLB:", modelViewer.availableVariants);
+
+      // enable/disable buttons based on what's actually available
+      const available = modelViewer.availableVariants || [];
+
+      buttons.forEach(button => {
+        const desired = button.dataset.variant; // casing as in HTML
+        // find a matching variant name (case-insensitive fallback)
+        const match = available.find(v => v === desired) ||
+                      available.find(v => v.toLowerCase() === desired.toLowerCase());
+
+        if (!match) {
+          // visually disable button if variant not present
+          button.disabled = true;
+          button.title = "Variant not found in model";
+        } else {
+          button.disabled = false;
+          button.title = "";
+        }
+
+        button.addEventListener("click", () => {
+          if (!match) return;
+          modelViewer.variantName = match; // set the exact name from GLB
+        });
+      });
+    });
+  }
+</script>
+    <!-- Color Choice Interface -->
+  <div class="controls">
+    <!-- These match your exact casing: Green, blue, black, cream -->
+    <button class="color-btn" data-variant="Green" data-color="#607d6b" aria-label="Green"></button>
+    <button class="color-btn" data-variant="Blue"  data-color="#5e7f90" aria-label="Blue"></button>
+    <button class="color-btn" data-variant="Black" data-color="#000000" aria-label="Black"></button>
+    <button class="color-btn" data-variant="Cream" data-color="#fefaef" aria-label="Cream"></button>
+  </div>
+
+  <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modelViewer = document.querySelector('#product-viewer');
+  const buttons = Array.from(document.querySelectorAll('.color-btn'));
+
+  if (!modelViewer) {
+    console.error('No <model-viewer> with id #product-viewer');
+    return;
+  }
+
+  function markSelected(matchName) {
+    buttons.forEach(b => b.classList.toggle('selected', b.dataset.variant === matchName));
+  }
+
+  modelViewer.addEventListener('load', () => {
+    const available = modelViewer.availableVariants || [];
+
+    buttons.forEach(button => {
+      const desired = button.dataset.variant || '';
+      const color = button.dataset.color;
+      if (color) button.style.backgroundColor = color;
+
+      const match = available.find(v => v === desired) ||
+                    available.find(v => v.toLowerCase() === desired.toLowerCase());
+
+      button.disabled = !match;
+      button.title = match ? desired : 'Variant not found in model';
+
+      button.addEventListener('click', () => {
+        if (!match) return;
+        modelViewer.variantName = match;
+        markSelected(match);
+      });
+    });
+
+    if (modelViewer.variantName) markSelected(modelViewer.variantName);
+  });
+});
+</script>
+  </body>
+</html>
