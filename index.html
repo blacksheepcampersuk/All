@@ -6,6 +6,183 @@
     <title>Product Page - Black Sheep</title>
     <!-- model-viewer (Web Components) -->
     <script type="module" crossorigin src="./assets/index-CVPh3n_n.js"></script> <link rel="stylesheet" crossorigin href="./assets/index-CyyMczef.css">
+    
+<script>
+  (function () {
+    'use strict';
+
+    // =======================================================
+    // 1. GET MODEL VIEWER
+    // =======================================================
+
+    function getViewer() {
+      return (
+        document.querySelector('#cupboard-viewer') ||
+        document.querySelector('model-viewer')
+      );
+    }
+
+
+    // =======================================================
+    // 2. NORMALIZE MODEL FILE PATH
+    // =======================================================
+
+    function normalizePath(path) {
+      if (!path) return path;
+
+      // Keep existing relative, absolute, and URL paths.
+      if (
+        path.startsWith('./') ||
+        path.startsWith('/') ||
+        path.startsWith('http')
+      ) {
+        return path;
+      }
+
+      // Treat plain filenames as files inside ./models/.
+      const fileName = path.replace(/\s+/g, '-');
+
+      return `./models/${fileName}`;
+    }
+
+
+    // =======================================================
+    // 3. LOAD SELECTED MODEL
+    // =======================================================
+
+    function setModel(modelPath) {
+      const viewer = getViewer();
+
+      if (!viewer) {
+        console.warn('Model viewer element was not found.');
+        return;
+      }
+
+      try {
+        const normalizedPath = normalizePath(modelPath);
+
+        // Remove the current source to force a reload.
+        viewer.removeAttribute('src');
+
+        setTimeout(() => {
+          viewer.setAttribute('src', normalizedPath);
+        }, 50);
+
+      } catch (error) {
+        console.warn('Unable to load model:', error);
+      }
+    }
+
+
+    // =======================================================
+    // 4. APPLY MODEL VARIANT
+    // =======================================================
+
+    function setVariant(variantName) {
+      const viewer = getViewer();
+
+      if (!viewer) {
+        console.warn('Model viewer element was not found.');
+        return;
+      }
+
+      try {
+        if (typeof viewer.variantName !== 'undefined') {
+          viewer.variantName = variantName;
+        }
+
+      } catch (error) {
+        console.warn('Unable to apply model variant:', error);
+      }
+    }
+
+
+    // =======================================================
+    // 5. OPEN THE 3D TAB
+    // =======================================================
+
+    function open3dTab() {
+      // Try supported tab selectors in order.
+      const tabButton =
+        document.getElementById('tab-3d') ||
+        document.querySelector('[data-target="panel-3d"]') ||
+        document.querySelector('.tab[data-target="panel-3d"]');
+
+      if (!tabButton) return;
+
+      try {
+        tabButton.click();
+      } catch (error) {
+        console.warn('Unable to open the 3D tab:', error);
+      }
+    }
+
+
+    // =======================================================
+    // 6. HANDLE MODEL AND VARIANT BUTTON CLICKS
+    // =======================================================
+
+    document.addEventListener('click', function (event) {
+      const clickedElement = event.target;
+
+      // Ignore clicks that do not originate from an HTML element.
+      if (!clickedElement || typeof clickedElement.closest !== 'function') {
+        return;
+      }
+
+
+      // -------------------------------------------------------
+      // MODEL SELECTION
+      // -------------------------------------------------------
+
+      const sizeButton = clickedElement.closest(
+        '.size-btn, .size-button, .model-btn'
+      );
+
+      if (sizeButton) {
+        const modelPath =
+          sizeButton.getAttribute('data-size') ||
+          sizeButton.dataset.size;
+
+        if (modelPath) {
+          open3dTab();
+          setModel(modelPath);
+        }
+
+        return;
+      }
+
+
+      // -------------------------------------------------------
+      // DOOR VARIANT SELECTION
+      // -------------------------------------------------------
+
+      const doorButton = clickedElement.closest(
+        '.door-btn, .variant-btn'
+      );
+
+      if (doorButton) {
+        const variantName =
+          doorButton.getAttribute('data-door') ||
+          doorButton.dataset.door;
+
+        if (variantName) {
+          setVariant(variantName);
+        }
+      }
+    });
+
+
+    // =======================================================
+    // 7. INITIALIZATION COMPLETE
+    // =======================================================
+
+    // Event delegation also supports buttons added dynamically.
+    // No additional initialization is required.
+
+  })();
+</script>
+
   </head>
   <body>
     <div id="root"></div>
